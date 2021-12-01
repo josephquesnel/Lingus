@@ -32,7 +32,7 @@ def get_config():
     """ Gets config file info for transitions, previous state memory ect"""
     global config, length_total
     config = open(f"{PATH}config.txt").read().split('=')[1]
-    length_total = len(read_csv(f"{PATH}languages\{config}.csv", encoding='utf8').to_dict(orient='index'))
+    length_total = len(read_csv(f"{PATH}languages/{config}.csv", encoding='utf8').to_dict(orient='index'))
     
 def pause():
     global wait, button_stop, button_start
@@ -97,13 +97,12 @@ def right_new_card():
 def select_language(language):
     """ Opens the selected language's data and updates config before updating details"""
     global selected_language
-    print(language)
     open(f"{PATH}config.txt", 'w').write(f'text={language}')
     try:
         with open(f"{PATH}save.json") as loaded:
             selected_language = load(loaded)[language]
     except JSONDecodeError: 
-        selected_language = read_csv(f"{PATH}languages\{language}.csv", encoding='utf8').to_dict(orient='index')
+        selected_language = read_csv(f"{PATH}languages/{language}.csv", encoding='utf8').to_dict(orient='index')
         
     pause()
     get_config()
@@ -117,7 +116,7 @@ def select_language(language):
 def new_cards():
     """Refreshes the deck and starts over by reloading the original file"""
     global selected_language
-    selected_language = read_csv(f"{PATH}languages\{config}.csv", encoding='utf8').to_dict(orient='index')
+    selected_language = read_csv(f"{PATH}languages/{config}.csv", encoding='utf8').to_dict(orient='index')
     
     canvas.delete('back','btxt1','btxt2','front','ftxt1','ftxt2')
     pause()
