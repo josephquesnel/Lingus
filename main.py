@@ -1,39 +1,46 @@
 import tkinter as tk
+import os
+import csv
+import json
 from PIL.ImageTk import PhotoImage, Image
 from random import choice
-from json import JSONDecodeError, load, dump
-from pandas import read_csv
-from os.path import abspath
-from glob import glob
 
-
-PATH = abspath(".").replace("\\", "/") +'/'
 
 # def get_raw_words():
 #    """Used to grab raw language list from Git for further translation. Not used directly in main application"""
 #    r = requests.get("https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_50k.txt").text.split()
 #    open(f'{PATH}languages/fr.csv', 'w').write('\n'.join(r[:3000:2]))
 
-############## INIT stuff #######################
+# Constants
+PATH = os.getcwd().replace("\\", "/") + '/'
+LEGEND = {'fr': 'French', 'de': 'German', 'es': 'Spanish'}
 
-try: 
-    config = open(f"{PATH}config.txt").read().split('=')[1]
-except: 
-    open(f"{PATH}config.txt", 'w').write('text=fr')
-    config = 'fr'
-
-# Flags to control timers and transitions
+# Global variables
 root = None
 click_flag = 0
 wait = True
-legend = {'fr':'French','de':'German','es':'Spanish'}
+config = ''
+length_total = 0
+select_word = ''
+select_ans = ''
+word_pair = {}
+pair_index = 0
+selected_language = {}
 
 ################## Main Stuff ###########################
 def get_config():
     """ Gets config file info for transitions, previous state memory ect"""
     global config, length_total
-    config = open(f"{PATH}config.txt").read().split('=')[1]
-    length_total = len(read_csv(f"{PATH}languages/{config}.csv", encoding='utf8').to_dict(orient='index'))
+    try:
+        with open(f"{PATH}config.txt") as f:
+            config = f.read().split('=')[1]
+            if not config:
+                config ='fr'
+    except:
+        with open(f"{PATH}config.txt", 'w') as f:
+            f.write('text=fr')
+        config = 'fr'
+    length_total = len(list(csv.DictReader(open(f"{PATH}languages/{config}.csv", encoding='utf8'))))
     
 def pause():
     global wait, button_stop, button_start
@@ -62,17 +69,18 @@ def save_progress():
     # Empties dictionary before re-assigning to it
     with open(f"{PATH}save.json") as saved:
         try:
-            file:dict = load(saved)
+            file:dict = json.load(saved)
             if config in file.keys():
                 file[config] = {}
             saved.close()
-        except JSONDecodeError: file = {config:{}}
+        except json.JSONDecodeError: 
+            file = {config:{}}
     
         finally: 
             file[config] = selected_language
     
     with open(f"{PATH}save.json",'w') as saved:
-        dump(file, saved)
+        json.dump(file, saved)
     
 def get_word():
     """ Removes at random a new word from the saved language deck on display and updates display globals with new word data"""
@@ -80,7 +88,7 @@ def get_word():
     save_progress()
     pair_index = choice(list(selected_language.keys()))
     word_pair = selected_language.pop(pair_index)
-    select_word = word_pair[legend[config]]
+    select_word = word_pair[LEGEND[config]]
     select_ans = word_pair['English']
 
 def wrong_new_card():
@@ -95,15 +103,16 @@ def right_new_card():
     cardfront()
     canvas.itemconfigure("score", text=f"{(length_total-len(selected_language))}/{length_total}")
     
-def select_language(language):
+def get_saved_language(language):
     """ Opens the selected language's data and updates config before updating details"""
     global selected_language
-    open(f"{PATH}config.txt", 'w').write(f'text={language}')
+    with open(f"{PATH}config.txt", 'w') as f:
+        f.write(f'text={language}')
     try:
-        with open(f"{PATH}save.json") as loaded:
-            selected_language = load(loaded)[language]
-    except JSONDecodeError: 
-        selected_language = read_csv(f"{PATH}languages/{language}.csv", encoding='utf8').to_dict(orient='index')
+        with open(f"{PATH}save.json") as saved:
+            selected_language = json.load(saved)[language]
+    except json.JSONDecodeError: 
+        selected_language = csv.DictReader(open(f"{PATH}languages/{language}.csv", encoding='utf8'))
         
     pause()
     get_config()
@@ -132,7 +141,7 @@ def cardfront():
     click_flag = 0
     canvas.delete('back','btxt1','btxt2') # tags represent canvas objects
     canvas.create_image(500,300, image=card_front, tag='front')
-    canvas.create_text(500,200, text=legend[config], font=("Times New Roman", 60,'bold'), tag='ftxt1')
+    canvas.create_text(500,200, text=LEGEND[config], font=("Times New Roman", 60,'bold'), tag='ftxt1')
     canvas.create_text(500,320, text=select_word, font=("Times New Roman", 45,'normal'), tag='ftxt2')
     canvas.tag_raise("score")
     if wait:
@@ -149,6 +158,20 @@ def cardback():
     canvas.create_text(500,320, text=select_ans, font=("Times New Roman", 45,'normal'), tag='btxt2')
     canvas.tag_raise("score")
 
+def get_language_files():
+    """ 
+    Automatically adds any new language files to menu selection
+    """
+    language_file_directories = os.listdir(f"{PATH}languages/")
+    for language_path in language_file_directories:
+        with open(f"{PATH}languages/{language_path}") as f:
+            name = f.readline().split(',')[0]
+            lang = language_path[:2]
+            language.add_command(label=name, command=lambda lang=lang:get_saved_language(lang))
+
+
+get_config()
+
 root = tk.Tk()
 root.maxsize(width=1000, height=700)
 root.minsize(width=1000, height=700)
@@ -163,8 +186,7 @@ wrong = PhotoImage(Image.open(f"images/wrong.png"))
 start_img = PhotoImage(Image.open(f"images/start_button.png"))
 stop_img = PhotoImage(Image.open(f"images/stop_button.png"))
 
-
-select_language(config)
+get_saved_language(config)
 canvas.create_text(750,100, text=f"{(length_total-len(selected_language))}/{length_total}", tag='score', font=("Times New Roman", 30))
 canvas.pack()
 
@@ -180,21 +202,15 @@ canvas.bind("<Button-1>", func=lambda event: cardfront() if click_flag == 1 else
 
 # Menu Stuff!
 menubar = tk.Menu(root, background='white', foreground='black', activebackground='white', activeforeground='black')  
-file = tk.Menu(menubar, tearoff=0, background='white', foreground='black')
-language = tk.Menu(file, tearoff=0, background='white', foreground='black')
+file_menu = tk.Menu(menubar, tearoff=0, background='white', foreground='black')
+language = tk.Menu(file_menu, tearoff=0, background='white', foreground='black')
 
-# Automatically adds any new language files to menu selection
-globbed = glob(f"{PATH}languages/*")
-for paths in globbed:
-    name = open(paths).readline().split(',')[0]
-    lang = paths[-6:-4]
-    language.add_command(label=name, command=lambda lang=lang:select_language(lang))
+get_language_files()
 
-file.add_command(label="New Deck", command=new_cards)
-file.add_cascade(label="Language", menu=language)  
-file.add_separator()  
-file.add_command(label="Exit", command=root.quit)  
-menubar.add_cascade(label="File", menu=file)
-
+file_menu.add_command(label="New Deck", command=new_cards)
+file_menu.add_cascade(label="Language", menu=language)  
+file_menu.add_separator()  
+file_menu.add_command(label="Exit", command=root.quit)  
+menubar.add_cascade(label="File", menu=file_menu)
 root.configure(menu=menubar)
 root.mainloop()
