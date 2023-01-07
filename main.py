@@ -6,6 +6,7 @@ from pandas import read_csv
 from os.path import abspath
 from glob import glob
 
+
 PATH = abspath(".").replace("\\", "/") +'/'
 
 # def get_raw_words():
@@ -155,12 +156,12 @@ root.title('Lingus')
 
 canvas = tk.Canvas(root, bg='teal', height=700,width=1000)
 
-card_front = PhotoImage(Image.open(f"{PATH}images/card_front.png"))
-card_back = PhotoImage(Image.open(f"{PATH}images/card_back.png"))
-right = PhotoImage(Image.open(f"{PATH}images/right.png"))
-wrong = PhotoImage(Image.open(f"{PATH}images/wrong.png"))
-start_img = PhotoImage(Image.open(f"{PATH}images/start_button.png"))
-stop_img = PhotoImage(Image.open(f"{PATH}images/stop_button.png"))
+card_front = PhotoImage(Image.open(f"images/card_front.png"))
+card_back = PhotoImage(Image.open(f"images/card_back.png"))
+right = PhotoImage(Image.open(f"images/right.png"))
+wrong = PhotoImage(Image.open(f"images/wrong.png"))
+start_img = PhotoImage(Image.open(f"images/start_button.png"))
+stop_img = PhotoImage(Image.open(f"images/stop_button.png"))
 
 
 select_language(config)
