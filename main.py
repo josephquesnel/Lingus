@@ -40,7 +40,7 @@ def get_config():
             if not config:
                 return 'fr'
             return config
-    except:
+    except FileNotFoundError:
         with open(f"{PATH}config.txt", 'w') as f:
             f.write('text=fr')
         return 'fr'
@@ -160,6 +160,7 @@ def new_cards():
     pause()
     get_word()
 
+#Controls card flip behavior
 def cardfront(select_word, select_ans):
     """ Main function to display the front of the card"""
     canvas.delete('back','btxt1','btxt2') # tags represent canvas objects
@@ -170,7 +171,7 @@ def cardfront(select_word, select_ans):
     if wait:
         return
     else:
-        root.after(5000,cardback,(select_word, select_ans))
+        root.after(5000,cardback, select_word, select_ans)
     
 def cardback(select_word, select_ans):
     canvas.delete('front','ftxt1','ftxt2')
