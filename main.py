@@ -83,18 +83,18 @@ def begin():
 def save_progress():
     # Tries to find and rewrite the old save with a new one.
     config = get_config()
+    new_save = {config:{}}
     try:
         with open(f"{PATH}save.json") as old_save:
             new_save:dict = json.load(old_save)
-            old_save.close()
-    except json.JSONDecodeError: 
-        new_save = {config:{}}
+            
+    except (json.JSONDecodeError, FileNotFoundError): 
+        pass
     
-    finally:
-        new_save[config] = selected_language
+    new_save[config] = selected_language
         
-        with open(f"{PATH}save.json",'w') as saved:
-            json.dump(new_save, saved)
+    with open(f"{PATH}save.json",'w') as saved:
+        json.dump(new_save, saved)
     
 def get_word():
     """ Removes at random a new word from the saved language deck on display and updates display globals with new word data"""
